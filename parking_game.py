@@ -23,10 +23,11 @@ pygame.display.set_caption("Car Parking Game")
 clock = pygame.time.Clock()
 
 # Load car sprites for all 4 orientations
-car_up = pygame.image.load("assets/car-up.png")
-car_down = pygame.image.load("assets/car-down.png")
-car_left = pygame.image.load("assets/car-left.png")
-car_right = pygame.image.load("assets/car-right.png")
+car_images = [pygame.image.load("assets/car-up.png"), pygame.image.load("assets/car-down.png"), pygame.image.load("assets/car-left.png"), pygame.image.load("assets/car-right.png")]
+# car_up = pygame.image.load("assets/car-up.png")
+# car_down = pygame.image.load("assets/car-down.png")
+# car_left = pygame.image.load("assets/car-left.png")
+# car_right = pygame.image.load("assets/car-right.png")
 
 
 def grid_to_pixels(x, y):
@@ -127,13 +128,13 @@ while True:
     screen.fill(WHITE)
     car_sprite = None
     if car_orientation == "up":
-        car_sprite = car_up
+        car_sprite = car_images[0]
     elif car_orientation == "down":
-        car_sprite = car_down
+        car_sprite = car_images[1]
     elif car_orientation == "left":
-        car_sprite = car_left
+        car_sprite = car_images[2]
     elif car_orientation == "right":
-        car_sprite = car_right
+        car_sprite = car_images[3]
 
 
 

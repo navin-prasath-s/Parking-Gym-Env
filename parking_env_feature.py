@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 import pygame
 from gymnasium import spaces
-import sys
+
 
 
 STATE_WIDTH, STATE_HEIGHT = 720, 720
@@ -34,13 +34,16 @@ class ParkingFeature(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": FPS, }
 
     def __init__(self, render_mode: Optional[str] = None):
+
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
         self.screen_width = STATE_WIDTH
         self.screen_height = STATE_HEIGHT
+
         self.window = None
         self.clock = None
         self.isopen = True
+        self.car_images = None
 
         self.orientation = -1
         self.reward = 0
@@ -53,7 +56,7 @@ class ParkingFeature(gym.Env):
         self.parking_rect = None
 
         self.action_space = spaces.Discrete(NUMBER_OF_ACTIONS)
-        self.observation_space = spaces.Box(low=np.array([0, 0, 0, 0, 0]), high=np.array([STATE_WIDTH, STATE_HEIGHT, STATE_WIDTH, STATE_HEIGHT, 3]), dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array([0, 0, 0, 0, 0]), high=np.array([STATE_WIDTH, STATE_HEIGHT, STATE_WIDTH, STATE_HEIGHT, 3]), dtype=np.int32)
 
     def get_random_car_position(self):
         car_tile = (self.np_random.integers(0, GRID_WIDTH), self.np_random.integers(0, GRID_HEIGHT))
@@ -170,3 +173,25 @@ class ParkingFeature(gym.Env):
 
         if self.clock is None:
             self.clock = pygame.time.Clock()
+
+        if self.car_images is None:
+            self.car_images = [pygame.image.load("assets/car-up.png"), pygame.image.load("assets/car-down.png"),
+                          pygame.image.load("assets/car-left.png"), pygame.image.load("assets/car-right.png")]
+
+        self.window.fill(WHITE)
+        car_sprite = None
+        if self.car_orientation == "up":
+            car_sprite = self.car_images[0]
+        elif self.car_orientation == "down":
+            car_sprite = self.car_images[1]
+        elif self.car_orientation == "left":
+            car_sprite = self.car_images[2]
+        elif self.car_orientation == "right":
+            car_sprite = self.car_images[3]
+
+        self.window.blit(car_sprite, self.car_rect)
+        pygame.draw.rect(self.window, (0, 255, 0), self.parking_rect)
+
+        pygame.display.flip()
+        pygame.time.delay(200)
+        self.clock.tick(FPS)
