@@ -6,10 +6,10 @@ import random
 pygame.init()
 
 # Constants
-WIDTH, HEIGHT = 720, 720
+STATE_WIDTH, STATE_HEIGHT = 720, 720
 TILE_SIZE = 60
-GRID_WIDTH = WIDTH // TILE_SIZE
-GRID_HEIGHT = HEIGHT // TILE_SIZE
+GRID_WIDTH = STATE_WIDTH // TILE_SIZE
+GRID_HEIGHT = STATE_HEIGHT // TILE_SIZE
 CAR_HEIGHT = 60
 CAR_WIDTH = 40
 FPS = 60
@@ -18,7 +18,7 @@ CAR_SPEED = 60
 
 
 # Create the game window
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((STATE_WIDTH, STATE_HEIGHT))
 pygame.display.set_caption("Car Parking Game")
 clock = pygame.time.Clock()
 
@@ -41,6 +41,10 @@ def get_random_car_position():
     return car_rect
 
 def get_random_orientation():
+    # 0 -up
+    # 1 - down
+    # 2 - left
+    # 3 - right
     return random.choice(["up", "down", "left", "right"])
 
 def get_random_parking_position():
@@ -49,7 +53,7 @@ def get_random_parking_position():
 
 car_rect = get_random_car_position()
 car_orientation = get_random_orientation()
-parking_lot = get_random_parking_position()
+parking_rect = get_random_parking_position()
 
 
 
@@ -61,7 +65,7 @@ while True:
             sys.exit()
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_3:
+            if event.key == pygame.K_3: # 3 to go straight
                 if car_orientation == "up":
                     car_rect.y -= CAR_SPEED
                 elif car_orientation == "down":
@@ -71,7 +75,7 @@ while True:
                 elif car_orientation == "right":
                     car_rect.x += CAR_SPEED
 
-            elif event.key == pygame.K_4:
+            elif event.key == pygame.K_4: # 4 to go backwards
                 if car_orientation == "up":
                     car_rect.y += CAR_SPEED
                 elif car_orientation == "down":
@@ -81,7 +85,7 @@ while True:
                 elif car_orientation == "right":
                     car_rect.x -= CAR_SPEED
 
-            elif event.key == pygame.K_1:
+            elif event.key == pygame.K_1: # 1 for turning left
                 if car_orientation == "up":
                     car_orientation = "left"
                 elif car_orientation == "down":
@@ -91,7 +95,7 @@ while True:
                 elif car_orientation == "right":
                     car_orientation = "up"
 
-            elif event.key == pygame.K_2:  # Numeric keypad 2 for turning right
+            elif event.key == pygame.K_2:  # 2 for turning right
                 if car_orientation == "up":
                     car_orientation = "right"
                 elif car_orientation == "down":
@@ -103,19 +107,19 @@ while True:
 
 
     # Check if the car is inside the parking lot
-    if parking_lot.colliderect(car_rect):
+    if parking_rect.colliderect(car_rect):
         print("Game Over - You parked the car!")
         pygame.quit()
         sys.exit()
 
     if car_rect.left < 0:
         car_rect.left = 0
-    elif car_rect.right > WIDTH:
-        car_rect.right = WIDTH
+    elif car_rect.right > STATE_WIDTH:
+        car_rect.right = STATE_WIDTH
     if car_rect.top < 0:
         car_rect.top = 0
-    elif car_rect.bottom > HEIGHT:
-        car_rect.bottom = HEIGHT
+    elif car_rect.bottom > STATE_HEIGHT:
+        car_rect.bottom = STATE_HEIGHT
 
 
 
@@ -134,7 +138,7 @@ while True:
 
 
     screen.blit(car_sprite, car_rect)
-    pygame.draw.rect(screen, (0, 255, 0), parking_lot)
+    pygame.draw.rect(screen, (0, 255, 0), parking_rect)
 
     pygame.display.flip()
     pygame.time.delay(200)
