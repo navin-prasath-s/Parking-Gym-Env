@@ -42,10 +42,6 @@ def get_random_car_position():
     return car_rect
 
 def get_random_orientation():
-    # 0 -up
-    # 1 - down
-    # 2 - left
-    # 3 - right
     return random.choice(["up", "down", "left", "right"])
 
 def get_random_parking_position():
