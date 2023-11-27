@@ -1,6 +1,6 @@
 from parking_env_image import ParkingImage
 
-env = ParkingImage(render_mode="human")
+env = ParkingImage()
 obs, info_ = env.reset(seed=13)
 print(obs)
 

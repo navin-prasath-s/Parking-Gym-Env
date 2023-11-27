@@ -8,12 +8,12 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import VecFrameStack
 from parking_env_image import ParkingImage
 
-tmp_path = "./PEIlogs/monitor/"
+tmp_path = "./PEIlogs2/monitor/"
 new_logger = configure(tmp_path, ["csv", "tensorboard", "log"])
 
 checkpoint_callback = CheckpointCallback(
   save_freq=1000,
-  save_path="./PEIlogs/models/",
+  save_path="./PEIlogs2/models/",
   name_prefix="parking_env_image",
   save_replay_buffer=True,
   save_vecnormalize=True,
@@ -21,17 +21,17 @@ checkpoint_callback = CheckpointCallback(
 
 def make_gym_env():
     env = ParkingImage()
-    env = TimeLimit(env, 300)
+    env = TimeLimit(env, 400)
     env = GrayScaleObservation(env, keep_dim=True)
-    env = Monitor(env, "./PEIlogs/monitor")
+    env = Monitor(env, "./PEIlogs2/monitor")
     return env
 
 vec_env = make_vec_env(lambda: make_gym_env(), n_envs=4)
 
 vec_env = VecFrameStack(vec_env, 1, channels_order="last")
 
-eval_callback = EvalCallback(vec_env, best_model_save_path="./PEIlogs/best/",
-                             log_path="./PEIlogs/best/", eval_freq=1000,
+eval_callback = EvalCallback(vec_env, best_model_save_path="./PEIlogs2/best/",
+                             log_path="./PEIlogs2/best/", eval_freq=1000,
                              deterministic=True, render=False)
 
 
@@ -40,4 +40,4 @@ model = PPO("CnnPolicy", vec_env, verbose=1)
 model.set_logger(new_logger)
 
 model.learn(total_timesteps=50000, callback=[checkpoint_callback, eval_callback])
-model.save("PEIlogs/parking_env_image_final_model")
+model.save("PEIlogs2/parking_env_image_final_model")

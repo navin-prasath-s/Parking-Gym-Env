@@ -1,6 +1,5 @@
 import gymnasium as gym
 from typing import Optional
-
 import numpy as np
 import pygame
 from gymnasium import spaces
@@ -39,6 +38,7 @@ class ParkingImage(gym.Env):
         self.screen_height = STATE_HEIGHT
 
         self.window = None
+        self.off_screen_window = None
         self.clock = None
         self.isopen = True
         self.car_images = None
@@ -88,17 +88,15 @@ class ParkingImage(gym.Env):
         return self.image, {}
 
     def close(self):
-        if self.window is not None:
+        if self.off_screen_window is not None:
             pygame.display.quit()
             self.isopen = False
             pygame.quit()
 
     def render(self):
-        if self.window is None:
-            pygame.init()
-            pygame.display.init()
-            pygame.display.set_caption("Car Parking Game")
-            self.window = pygame.display.set_mode((STATE_WIDTH, STATE_HEIGHT))
+        if self.off_screen_window is None:
+
+            self.off_screen_window = pygame.Surface((STATE_WIDTH, STATE_HEIGHT))
 
         if self.clock is None:
             self.clock = pygame.time.Clock()
@@ -108,7 +106,7 @@ class ParkingImage(gym.Env):
                           pygame.image.load("assets/car-left.png"), pygame.image.load("assets/car-right.png")]
 
 
-        self.window.fill(WHITE)
+        self.off_screen_window.fill(WHITE)
         car_sprite = None
         if self.car_orientation == "up":
             car_sprite = self.car_images[0]
@@ -119,15 +117,21 @@ class ParkingImage(gym.Env):
         elif self.car_orientation == "right":
             car_sprite = self.car_images[3]
 
-        self.window.blit(car_sprite, self.car_rect)
-        pygame.draw.rect(self.window, (255, 255, 0), self.parking_rect)
-        self.image = pygame.surfarray.array3d(self.window)
+        self.off_screen_window.blit(car_sprite, self.car_rect)
+        pygame.draw.rect(self.off_screen_window, (255, 255, 0), self.parking_rect)
+        self.image = pygame.surfarray.array3d(self.off_screen_window)
 
 
     def display_render(self):
+        if self.window is None:
+            pygame.init()
+            pygame.display.init()
+            pygame.display.set_caption("Car Parking Game")
+            self.window = pygame.display.set_mode((STATE_WIDTH, STATE_HEIGHT))
+        self.window.blit(self.off_screen_window, (0, 0))
         pygame.display.flip()
-        pygame.time.delay(200)
         self.clock.tick(FPS)
+
 
     def step(self, action):
         if action == 3: # 3 to go straight
