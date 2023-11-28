@@ -72,7 +72,8 @@ class ParkingImage(gym.Env):
 
     def get_random_orientation(self):
         # 0 -up, 1 - down, 2 - left, 3 - right
-        return self.np_random.choice(["up", "down", "left", "right"])
+        orient = self.np_random.choice(["up", "down", "left", "right"])
+        return orient
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed)
