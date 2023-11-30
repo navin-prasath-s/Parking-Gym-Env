@@ -17,6 +17,7 @@ FPS = 60
 WHITE = (255, 255, 255)
 CAR_SPEED = 60
 NUMBER_OF_ACTIONS= 5
+NO_OF_OBSTACLES = 4
 
 
 def grid_to_pixels(x, y):
@@ -44,22 +45,28 @@ class ParkingFeature(gym.Env):
         self.clock = None
         self.isopen = True
         self.car_images = None
+        self.obstacle_image = None
+
 
         self.orientation = -1
         self.reward = 0
         self.current = ()
         self.lot = ()
         self.delta = ()
+        self.obstacle_positions = np.array([])
 
         self.car_rect = None
         self.car_orientation = ""
         self.parking_rect = None
+        self.obstacle_rects = np.array([])
+        self.is_visited = set()
 
         self.action_space = spaces.Discrete(NUMBER_OF_ACTIONS)
-        # self.observation_space = spaces.Box(low=np.array([0, 0, 0, 0, 0]), high=np.array([STATE_WIDTH, STATE_HEIGHT, STATE_WIDTH, STATE_HEIGHT, 3]), dtype=np.int32)
-        self.observation_space = spaces.Box(low=np.array([0, 0, -STATE_WIDTH, -STATE_HEIGHT, 0]),
-                                            high=np.array([STATE_WIDTH, STATE_HEIGHT, STATE_WIDTH, STATE_HEIGHT, 3]),
-                                            dtype=np.int32)
+        low_values = np.array([0, 0, -STATE_WIDTH, -STATE_HEIGHT, 0] + [0] * 8)
+        high_values = np.array(
+            [STATE_WIDTH, STATE_HEIGHT, STATE_WIDTH, STATE_HEIGHT, 3] + [STATE_WIDTH] * 8)
+
+        self.observation_space = spaces.Box(low=low_values, high=high_values, dtype=np.int32)
 
     def get_random_car_position(self):
         car_tile = (self.np_random.integers(0, GRID_WIDTH), self.np_random.integers(0, GRID_HEIGHT))
@@ -69,8 +76,30 @@ class ParkingFeature(gym.Env):
         return car_rect
 
     def get_random_parking_position(self):
-        lot_tile = (self.np_random.integers(0, GRID_WIDTH), self.np_random.integers(0, GRID_HEIGHT))
-        return pygame.Rect(grid_to_pixels(*lot_tile), (TILE_SIZE, TILE_SIZE))
+        while True:
+            lot_tile = (self.np_random.integers(0, GRID_WIDTH), self.np_random.integers(0, GRID_HEIGHT))
+            parking_rect = pygame.Rect(grid_to_pixels(*lot_tile), (TILE_SIZE, TILE_SIZE))
+            if not parking_rect.colliderect(self.car_rect):
+                return parking_rect
+
+
+    def get_random_obstacle_positions(self):
+        obstacle_rects = []
+        while len(obstacle_rects) < NO_OF_OBSTACLES:
+            obstacle_tile = (self.np_random.integers(0, GRID_WIDTH), self.np_random.integers(0, GRID_HEIGHT))
+            obstacle_rect = pygame.Rect(grid_to_pixels(*obstacle_tile), (TILE_SIZE, TILE_SIZE))
+
+            if not obstacle_rect.colliderect(self.car_rect) and not obstacle_rect.colliderect(self.parking_rect):
+                overlap = False
+                for existing_obstacle in obstacle_rects:
+                    if obstacle_rect.colliderect(existing_obstacle):
+                        overlap = True
+                        break
+
+                if not overlap:
+                    obstacle_rects.append(obstacle_rect)
+        return obstacle_rects
+
 
     def get_random_orientation(self):
         # 0 -up, 1 - down, 2 - left, 3 - right
@@ -82,17 +111,18 @@ class ParkingFeature(gym.Env):
         self.car_rect = self.get_random_car_position()
         self.car_orientation = self.get_random_orientation()
         self.parking_rect = self.get_random_parking_position()
+        self.obstacle_rects = self.get_random_obstacle_positions()
 
         if self.render_mode == "human":
             self.render()
-
         self.current = (self.car_rect.x, self.car_rect.y)
         self.lot = (self.parking_rect.x, self.parking_rect.y)
         self.orientation = map_orientation_to_numeric(self.car_orientation)
         self.delta = (self.car_rect.x-self.parking_rect.x, self.car_rect.y-self.parking_rect.y)
-        # return np.array([self.current[0], self.current[1], self.lot[0], self.lot[1], self.orientation]), {}
+        self.obstacle_positions = np.array(
+            [rect.x for rect in self.obstacle_rects] + [rect.y for rect in self.obstacle_rects])
 
-        return np.array([self.current[0], self.current[1], self.delta[0], self.delta[1], self.orientation]), {}
+        return np.array([self.current[0], self.current[1], self.delta[0], self.delta[1], self.orientation] +self.obstacle_positions.tolist()), {}
 
     def step(self, action):
 
@@ -145,25 +175,34 @@ class ParkingFeature(gym.Env):
         elif self.car_rect.bottom > STATE_HEIGHT:
             self.car_rect.bottom = STATE_HEIGHT
 
+        self.current = (self.car_rect.x, self.car_rect.y)
         terminated = False
         if self.parking_rect.colliderect(self.car_rect):
             self.reward = 2000
             terminated = True
         else:
-            self.reward = -1
+            for obstacle_rect in self.obstacle_rects:
+                if self.car_rect.colliderect(obstacle_rect):
+                    self.reward = -1000
+                    terminated = True
+                    break
+            else:
+                if self.current in self.is_visited:
+                    self.reward = -1
+                else:
+                    self.is_visited.add(self.current)
+                    self.reward = 10
+
 
         if self.render_mode == "human":
             self.render()
 
-        self.current = (self.car_rect.x, self.car_rect.y)
-        self.lot = (self.parking_rect.x, self.parking_rect.y)
+
         self.orientation = map_orientation_to_numeric(self.car_orientation)
         self.delta = (self.car_rect.x - self.parking_rect.x, self.car_rect.y - self.parking_rect.y)
 
-
-        # return np.array([self.current[0], self.current[1], self.lot[0], self.lot[1], self.orientation]), self.reward, terminated, False, {}
         return np.array([self.current[0], self.current[1], self.delta[0], self.delta[1],
-                         self.orientation]), self.reward, terminated, False, {}
+                         self.orientation] + self.obstacle_positions.flatten().tolist()), self.reward, terminated, False, {}
 
     def close(self):
         if self.window is not None:
@@ -184,6 +223,7 @@ class ParkingFeature(gym.Env):
         if self.car_images is None:
             self.car_images = [pygame.image.load("assets/car-up.png"), pygame.image.load("assets/car-down.png"),
                           pygame.image.load("assets/car-left.png"), pygame.image.load("assets/car-right.png")]
+            self.obstacle_image = pygame.image.load("assets/obstacle.png")
 
         self.window.fill(WHITE)
         car_sprite = None
@@ -197,13 +237,15 @@ class ParkingFeature(gym.Env):
             car_sprite = self.car_images[3]
 
         self.window.blit(car_sprite, self.car_rect)
+        for obstacle_rect in self.obstacle_rects:
+            self.window.blit(self.obstacle_image, obstacle_rect)
         pygame.draw.rect(self.window, (0, 255, 0), self.parking_rect)
 
 
         pygame.display.flip()
-        pygame.time.delay(200)
         self.clock.tick(FPS)
 
 
 
-
+a = ParkingFeature()
+a.reset()

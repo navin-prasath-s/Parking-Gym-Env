@@ -7,6 +7,7 @@ print(obs)
 for _ in range(100):
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
+    print(reward)
     if terminated or truncated:
         observation, info = env.reset()
 

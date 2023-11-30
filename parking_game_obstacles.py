@@ -6,7 +6,7 @@ import random
 pygame.init()
 
 # Constants
-STATE_WIDTH, STATE_HEIGHT = 720, 720
+STATE_WIDTH, STATE_HEIGHT = 780, 780
 TILE_SIZE = 60
 GRID_WIDTH = STATE_WIDTH // TILE_SIZE
 GRID_HEIGHT = STATE_HEIGHT // TILE_SIZE
@@ -15,6 +15,7 @@ CAR_WIDTH = 40
 FPS = 60
 WHITE = (255, 255, 255)
 CAR_SPEED = 60
+NO_OF_OBSTACLES = 6
 
 
 # Create the game window
@@ -23,7 +24,12 @@ pygame.display.set_caption("Car Parking Game")
 clock = pygame.time.Clock()
 
 # Load car sprites for all 4 orientations
-car_images = [pygame.image.load("assets/car-up.png"), pygame.image.load("assets/car-down.png"), pygame.image.load("assets/car-left.png"), pygame.image.load("assets/car-right.png")]
+car_images = [pygame.image.load("assets/car-up.png"),
+              pygame.image.load("assets/car-down.png"),
+              pygame.image.load("assets/car-left.png"),
+              pygame.image.load("assets/car-right.png")]
+
+obstacle_image = pygame.image.load("assets/obstacle.png")
 
 
 
@@ -41,14 +47,39 @@ def get_random_car_position():
 def get_random_orientation():
     return random.choice(["up", "down", "left", "right"])
 
-def get_random_parking_position():
-    lot_tile = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
-    return pygame.Rect(grid_to_pixels(*lot_tile), (TILE_SIZE, TILE_SIZE))
+def get_random_parking_position(car_position):
+    while True:
+        lot_tile = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+        parking_rect = pygame.Rect(grid_to_pixels(*lot_tile), (TILE_SIZE, TILE_SIZE))
+
+        if not parking_rect.colliderect(car_position):
+            return parking_rect
+
+
+def get_random_obstacle_positions(car_position, parking_position):
+    obstacle_positions = []
+    while len(obstacle_positions) < NO_OF_OBSTACLES:
+        obstacle_tile = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+        obstacle_rect = pygame.Rect(grid_to_pixels(*obstacle_tile), (TILE_SIZE, TILE_SIZE))
+
+        if not obstacle_rect.colliderect(car_position) and not obstacle_rect.colliderect(parking_position):
+            overlap = False
+            for existing_obstacle in obstacle_positions:
+                if obstacle_rect.colliderect(existing_obstacle):
+                    overlap = True
+                    break
+
+            if not overlap:
+                obstacle_positions.append(obstacle_rect)
+
+    return obstacle_positions
+
+
 
 car_rect = get_random_car_position()
 car_orientation = get_random_orientation()
-parking_rect = get_random_parking_position()
-
+parking_rect = get_random_parking_position(car_rect)
+obstacles_rect = get_random_obstacle_positions(car_rect, parking_rect)
 
 
 
@@ -106,6 +137,13 @@ while True:
         pygame.quit()
         sys.exit()
 
+    for obstacle_rect in obstacles_rect:
+        if car_rect.colliderect(obstacle_rect):
+            print("Game Over - You collided with an obstacle!")
+            pygame.quit()
+            sys.exit()
+
+
     if car_rect.left < 0:
         car_rect.left = 0
     elif car_rect.right > STATE_WIDTH:
@@ -132,8 +170,25 @@ while True:
 
 
     screen.blit(car_sprite, car_rect)
+    for obstacle_rect in obstacles_rect:
+        screen.blit(obstacle_image, obstacle_rect)
     pygame.draw.rect(screen, (0, 255, 0), parking_rect)
 
     pygame.display.flip()
     pygame.time.delay(200)
     clock.tick(FPS)
+
+
+
+
+#
+# def get_random_obstacles():
+#     obstacles = []
+#     for _ in range(NO_OF_OBSTACLES):
+#         obstacle_tile = None
+#         while obstacle_tile is None or obstacle_tile == car_rect.topleft or parking_rect.colliderect(pygame.Rect(grid_to_pixels(*obstacle_tile), (TILE_SIZE, TILE_SIZE))):
+#             obstacle_tile = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+#
+#         obstacle_rect = pygame.Rect(grid_to_pixels(*obstacle_tile), (TILE_SIZE, TILE_SIZE))
+#         obstacles.append(obstacle_rect)
+#     return obstacles

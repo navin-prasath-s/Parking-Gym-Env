@@ -4,18 +4,17 @@ import numpy as np
 import pygame
 from gymnasium import spaces
 
-
-
 STATE_WIDTH, STATE_HEIGHT = 720, 720
 TILE_SIZE = 60
 GRID_WIDTH = STATE_WIDTH // TILE_SIZE
 GRID_HEIGHT = STATE_HEIGHT // TILE_SIZE
 CAR_HEIGHT = 60
 CAR_WIDTH = 40
-FPS = 60
+FPS = 200
 WHITE = (255, 255, 255)
 CAR_SPEED = 60
 NUMBER_OF_ACTIONS= 5
+NO_OF_OBSTACLES = 4
 
 
 def grid_to_pixels(x, y):
@@ -38,22 +37,23 @@ class ParkingImage(gym.Env):
         self.screen_height = STATE_HEIGHT
 
         self.window = None
-        self.off_screen_window = None
+        self.off_screen_surface = None
         self.clock = None
         self.isopen = True
         self.car_images = None
+        self.obstacle_image = None
         self.reward = 0
 
-        # self.orientation = -1
-        # self.current = ()
-        # self.lot = ()
-        # self.delta = ()
+        self.current = ()
+
 
         self.image = None
 
         self.car_rect = None
         self.car_orientation = ""
         self.parking_rect = None
+        self.obstacle_rects = np.array([])
+        self.is_visited = set()
 
         self.action_space = spaces.Discrete(NUMBER_OF_ACTIONS)
         self.observation_space = spaces.Box(low=0, high=255,
@@ -67,8 +67,28 @@ class ParkingImage(gym.Env):
         return car_rect
 
     def get_random_parking_position(self):
-        lot_tile = (self.np_random.integers(0, GRID_WIDTH), self.np_random.integers(0, GRID_HEIGHT))
-        return pygame.Rect(grid_to_pixels(*lot_tile), (TILE_SIZE, TILE_SIZE))
+        while True:
+            lot_tile = (self.np_random.integers(0, GRID_WIDTH), self.np_random.integers(0, GRID_HEIGHT))
+            parking_rect = pygame.Rect(grid_to_pixels(*lot_tile), (TILE_SIZE, TILE_SIZE))
+            if not parking_rect.colliderect(self.car_rect):
+                return parking_rect
+
+    def get_random_obstacle_positions(self):
+        obstacle_rects = []
+        while len(obstacle_rects) < NO_OF_OBSTACLES:
+            obstacle_tile = (self.np_random.integers(0, GRID_WIDTH), self.np_random.integers(0, GRID_HEIGHT))
+            obstacle_rect = pygame.Rect(grid_to_pixels(*obstacle_tile), (TILE_SIZE, TILE_SIZE))
+
+            if not obstacle_rect.colliderect(self.car_rect) and not obstacle_rect.colliderect(self.parking_rect):
+                overlap = False
+                for existing_obstacle in obstacle_rects:
+                    if obstacle_rect.colliderect(existing_obstacle):
+                        overlap = True
+                        break
+
+                if not overlap:
+                    obstacle_rects.append(obstacle_rect)
+        return obstacle_rects
 
     def get_random_orientation(self):
         # 0 -up, 1 - down, 2 - left, 3 - right
@@ -80,34 +100,32 @@ class ParkingImage(gym.Env):
         self.car_rect = self.get_random_car_position()
         self.car_orientation = self.get_random_orientation()
         self.parking_rect = self.get_random_parking_position()
+        self.obstacle_rects = self.get_random_obstacle_positions()
         self.image = np.zeros((STATE_HEIGHT, STATE_WIDTH, 3), dtype=np.uint8)
+        self.current = (self.car_rect.x, self.car_rect.y)
+        self.fill_surface()
 
         if self.render_mode == "human":
             self.render()
-            self.display_render()
 
         return self.image, {}
 
     def close(self):
-        if self.off_screen_window is not None:
+        if self.off_screen_surface is not None:
             pygame.display.quit()
             self.isopen = False
             pygame.quit()
 
-    def render(self):
-        if self.off_screen_window is None:
-
-            self.off_screen_window = pygame.Surface((STATE_WIDTH, STATE_HEIGHT))
-
-        if self.clock is None:
-            self.clock = pygame.time.Clock()
-
+    def fill_surface(self):
         if self.car_images is None:
             self.car_images = [pygame.image.load("assets/car-up.png"), pygame.image.load("assets/car-down.png"),
                           pygame.image.load("assets/car-left.png"), pygame.image.load("assets/car-right.png")]
-
-
-        self.off_screen_window.fill(WHITE)
+            self.obstacle_image = pygame.image.load("assets/obstacle.png")
+            pygame.init()
+            pygame.display.init()
+            pygame.display.set_caption("Car Parking Game")
+        self.off_screen_surface = pygame.Surface((STATE_WIDTH, STATE_HEIGHT))
+        self.off_screen_surface.fill(WHITE)
         car_sprite = None
         if self.car_orientation == "up":
             car_sprite = self.car_images[0]
@@ -118,18 +136,21 @@ class ParkingImage(gym.Env):
         elif self.car_orientation == "right":
             car_sprite = self.car_images[3]
 
-        self.off_screen_window.blit(car_sprite, self.car_rect)
-        pygame.draw.rect(self.off_screen_window, (255, 255, 0), self.parking_rect)
-        self.image = pygame.surfarray.array3d(self.off_screen_window)
+        self.off_screen_surface.blit(car_sprite, self.car_rect)
+        for obstacle_rect in self.obstacle_rects:
+            self.off_screen_surface.blit(self.obstacle_image, obstacle_rect)
+        pygame.draw.rect(self.off_screen_surface, (100, 100, 100), self.parking_rect)
+
+        self.image = pygame.surfarray.array3d(self.off_screen_surface)
+        pygame.event.get()
 
 
-    def display_render(self):
+    def render(self):
         if self.window is None:
-            pygame.init()
-            pygame.display.init()
-            pygame.display.set_caption("Car Parking Game")
             self.window = pygame.display.set_mode((STATE_WIDTH, STATE_HEIGHT))
-        self.window.blit(self.off_screen_window, (0, 0))
+        if self.clock is None:
+            self.clock = pygame.time.Clock()
+        self.window.blit(self.off_screen_surface, (0, 0))
         pygame.display.flip()
         self.clock.tick(FPS)
 
@@ -184,17 +205,29 @@ class ParkingImage(gym.Env):
         elif self.car_rect.bottom > STATE_HEIGHT:
             self.car_rect.bottom = STATE_HEIGHT
 
+        self.current = (self.car_rect.x, self.car_rect.y)
         terminated = False
         if self.parking_rect.colliderect(self.car_rect):
             self.reward = 2000
             terminated = True
         else:
-            self.reward = -1
+            for obstacle_rect in self.obstacle_rects:
+                if self.car_rect.colliderect(obstacle_rect):
+                    self.reward = -1000
+                    terminated = True
+                    break
+            else:
+                if self.current in self.is_visited:
+                    self.reward = -1
+                else:
+                    self.is_visited.add(self.current)
+                    self.reward = 10
 
-        self.render()
+
+        self.fill_surface()
 
         if self.render_mode == "human":
-            self.display_render()
+            self.render()
 
         return self.image, self.reward, terminated, False, {}
 
