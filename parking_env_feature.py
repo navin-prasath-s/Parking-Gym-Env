@@ -13,10 +13,10 @@ GRID_WIDTH = STATE_WIDTH // TILE_SIZE
 GRID_HEIGHT = STATE_HEIGHT // TILE_SIZE
 CAR_HEIGHT = 60
 CAR_WIDTH = 40
-FPS = 60
+FPS = 200
 WHITE = (255, 255, 255)
 CAR_SPEED = 60
-NUMBER_OF_ACTIONS= 5
+NUMBER_OF_ACTIONS = 5
 NO_OF_OBSTACLES = 4
 
 
@@ -187,11 +187,8 @@ class ParkingFeature(gym.Env):
                     terminated = True
                     break
             else:
-                if self.current in self.is_visited:
-                    self.reward = -1
-                else:
-                    self.is_visited.add(self.current)
-                    self.reward = 10
+                self.reward = -1
+
 
 
         if self.render_mode == "human":
@@ -241,7 +238,7 @@ class ParkingFeature(gym.Env):
             self.window.blit(self.obstacle_image, obstacle_rect)
         pygame.draw.rect(self.window, (0, 255, 0), self.parking_rect)
 
-
+        pygame.event.get()
         pygame.display.flip()
         self.clock.tick(FPS)
 

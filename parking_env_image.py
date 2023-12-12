@@ -11,9 +11,9 @@ GRID_HEIGHT = STATE_HEIGHT // TILE_SIZE
 CAR_HEIGHT = 60
 CAR_WIDTH = 40
 FPS = 200
-WHITE = (255, 255, 255)
+BACKGROUND_COLOR = (160, 160, 160)
 CAR_SPEED = 60
-NUMBER_OF_ACTIONS= 5
+NUMBER_OF_ACTIONS = 5
 NO_OF_OBSTACLES = 4
 
 
@@ -54,7 +54,6 @@ class ParkingImage(gym.Env):
         self.parking_rect = None
         self.obstacle_rects = np.array([])
         self.is_visited = set()
-
         self.action_space = spaces.Discrete(NUMBER_OF_ACTIONS)
         self.observation_space = spaces.Box(low=0, high=255,
                                             shape=(STATE_HEIGHT, STATE_WIDTH, 3), dtype=np.uint8)
@@ -101,9 +100,8 @@ class ParkingImage(gym.Env):
         self.car_orientation = self.get_random_orientation()
         self.parking_rect = self.get_random_parking_position()
         self.obstacle_rects = self.get_random_obstacle_positions()
-        self.image = np.zeros((STATE_HEIGHT, STATE_WIDTH, 3), dtype=np.uint8)
+        self.fill_surface() # self.image ipdated in fill
         self.current = (self.car_rect.x, self.car_rect.y)
-        self.fill_surface()
 
         if self.render_mode == "human":
             self.render()
@@ -112,7 +110,6 @@ class ParkingImage(gym.Env):
 
     def close(self):
         if self.off_screen_surface is not None:
-            pygame.display.quit()
             self.isopen = False
             pygame.quit()
 
@@ -125,7 +122,7 @@ class ParkingImage(gym.Env):
             pygame.display.init()
             pygame.display.set_caption("Car Parking Game")
         self.off_screen_surface = pygame.Surface((STATE_WIDTH, STATE_HEIGHT))
-        self.off_screen_surface.fill(WHITE)
+        self.off_screen_surface.fill(BACKGROUND_COLOR)
         car_sprite = None
         if self.car_orientation == "up":
             car_sprite = self.car_images[0]
