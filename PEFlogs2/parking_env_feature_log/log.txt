@@ -1,0 +1,25 @@
+Logging to ./PEFlogs2/parking_env_feature_log/
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 300      |
+|    mean_reward     | -300     |
+| time/              |          |
+|    total_timesteps | 14000    |
+---------------------------------
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 300      |
+|    mean_reward     | -300     |
+| time/              |          |
+|    total_timesteps | 28000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 231      |
+|    ep_rew_mean     | 429      |
+| time/              |          |
+|    fps             | 12841    |
+|    iterations      | 1        |
+|    time_elapsed    | 2        |
+|    total_timesteps | 28672    |
+---------------------------------
