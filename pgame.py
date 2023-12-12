@@ -16,14 +16,14 @@ FPS = 60
 BACKGROUND_COLOR = (160, 160, 160)
 CAR_SPEED = 60
 
-
 # Create the game window
 screen = pygame.display.set_mode((STATE_WIDTH, STATE_HEIGHT))
 pygame.display.set_caption("Car Parking Game")
 clock = pygame.time.Clock()
 
 # Load car sprites for all 4 orientations
-car_images = [pygame.image.load("assets/car-up.png"), pygame.image.load("assets/car-down.png"), pygame.image.load("assets/car-left.png"), pygame.image.load("assets/car-right.png")]
+car_images = [pygame.image.load("assets/car-up.png"), pygame.image.load("assets/car-down.png"),
+              pygame.image.load("assets/car-left.png"), pygame.image.load("assets/car-right.png")]
 obstacle_image = pygame.image.load("assets/obstacle.png")
 
 
@@ -38,13 +38,15 @@ def get_random_car_position():
     car_rect.y += (TILE_SIZE - CAR_HEIGHT) // 2
     return car_rect
 
+
 def get_random_orientation():
     return random.choice(["up", "down", "left", "right"])
+
 
 def get_random_obstacle_positions():
     obstacle_rects = []
     while len(obstacle_rects) < 4:
-        obstacle_tile = (random.randint(0, GRID_WIDTH-1), random.randint(0, GRID_HEIGHT-1))
+        obstacle_tile = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
         obstacle_rect = pygame.Rect(grid_to_pixels(*obstacle_tile), (TILE_SIZE, TILE_SIZE))
 
         overlap = False
@@ -57,18 +59,25 @@ def get_random_obstacle_positions():
 
     return obstacle_rects
 
+
 def get_random_parking_position():
     lot_tile = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
     return pygame.Rect(grid_to_pixels(*lot_tile), (TILE_SIZE, TILE_SIZE))
+
+
+def reset_environment():
+    global car_rect, car_orientation, parking_rect, obstacles_rect
+
+    car_rect = get_random_car_position()
+    car_orientation = get_random_orientation()
+    parking_rect = get_random_parking_position()
+    obstacles_rect = get_random_obstacle_positions()
+
 
 car_rect = get_random_car_position()
 car_orientation = get_random_orientation()
 parking_rect = get_random_parking_position()
 obstacles_rect = get_random_obstacle_positions()
-
-
-
-
 
 while True:
     for event in pygame.event.get():
@@ -77,7 +86,7 @@ while True:
             sys.exit()
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_3: # 3 to go straight
+            if event.key == pygame.K_3:  # 3 to go straight
                 if car_orientation == "up":
                     car_rect.y -= CAR_SPEED
                 elif car_orientation == "down":
@@ -87,7 +96,7 @@ while True:
                 elif car_orientation == "right":
                     car_rect.x += CAR_SPEED
 
-            elif event.key == pygame.K_4: # 4 to go backwards
+            elif event.key == pygame.K_4:  # 4 to go backwards
                 if car_orientation == "up":
                     car_rect.y += CAR_SPEED
                 elif car_orientation == "down":
@@ -97,7 +106,7 @@ while True:
                 elif car_orientation == "right":
                     car_rect.x -= CAR_SPEED
 
-            elif event.key == pygame.K_1: # 1 for turning left
+            elif event.key == pygame.K_1:  # 1 for turning left
                 if car_orientation == "up":
                     car_orientation = "left"
                 elif car_orientation == "down":
@@ -117,11 +126,9 @@ while True:
                 elif car_orientation == "right":
                     car_orientation = "down"
 
-
     # Check if the car is inside the parking lot
     if parking_rect.colliderect(car_rect):
-        pygame.quit()
-        sys.exit()
+        reset_environment()
 
     if car_rect.left < 0:
         car_rect.left = 0
@@ -131,8 +138,6 @@ while True:
         car_rect.top = 0
     elif car_rect.bottom > STATE_HEIGHT:
         car_rect.bottom = STATE_HEIGHT
-
-
 
     # Update the display
     screen.fill(BACKGROUND_COLOR)

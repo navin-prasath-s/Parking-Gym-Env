@@ -4,10 +4,11 @@ from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
+from parking_multi_env import ParkingMultiEnv
 
 from parking_env_feature import ParkingFeature
 
-name = "dqn_feature_lessbuffer_sameseed_explore-gradient"
+name = "multi"
 tmp_path = f"./FeatureLogs/monitor/{name}"
 new_logger = configure(tmp_path, ["csv", "tensorboard", "log"])
 
@@ -19,8 +20,7 @@ checkpoint_callback = CheckpointCallback(
   save_vecnormalize=True,
 )
 def make_gym_env():
-    env = ParkingFeature()
-    env = TimeLimit(env, 150)
+    env = ParkingMultiEnv()
     env = Monitor(env, f"./FeatureLogs/monitor/{name}")
     return env
 
